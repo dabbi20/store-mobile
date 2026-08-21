@@ -5,9 +5,12 @@ import '../models/product.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/product_service.dart';
+import '../services/user_service.dart';
+import 'chat_screen.dart';
 import 'create_product_screen.dart';
 import 'edit_product_screen.dart';
 import 'login_screen.dart';
+import 'product_detail_screen.dart';
 import 'profile_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
@@ -28,6 +31,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   final AuthService authService = AuthService();
 
+  final UserService userService = UserService();
+
   // ========================================
   // ESTADOS
   // ========================================
@@ -35,7 +40,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
   List<Product> products = [];
 
   bool isLoading = true;
+
   String? error;
+
+  int productsCreated = 0;
 
   // ========================================
   // INICIALIZACIÓN
@@ -45,14 +53,15 @@ class _ProductsScreenState extends State<ProductsScreen> {
   void initState() {
     super.initState();
 
-    loadProducts();
+    loadData();
   }
 
   // ========================================
-  // CARGAR PRODUCTOS
+  // CARGAR DATOS
+  // PRODUCTOS + ESTADÍSTICAS
   // ========================================
 
-  Future<void> loadProducts() async {
+  Future<void> loadData() async {
     if (mounted) {
       setState(() {
         isLoading = true;
@@ -61,14 +70,24 @@ class _ProductsScreenState extends State<ProductsScreen> {
     }
 
     try {
-      final result = await productService.getProducts();
+      final result = await Future.wait([
+        productService.getProducts(),
+        userService.getMyStats(),
+      ]);
+
+      final loadedProducts = result[0] as List<Product>;
+
+      final stats = result[1] as Map<String, dynamic>;
 
       if (!mounted) {
         return;
       }
 
       setState(() {
-        products = result;
+        products = loadedProducts;
+
+        productsCreated = (stats['products_created'] as num?)?.toInt() ?? 0;
+
         isLoading = false;
       });
     } catch (e) {
@@ -85,6 +104,70 @@ class _ProductsScreenState extends State<ProductsScreen> {
   }
 
   // ========================================
+  // CARGAR PRODUCTOS
+  // ========================================
+
+  Future<void> loadProducts() async {
+    try {
+      final result = await productService.getProducts();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        products = result;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        error = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
+  // ========================================
+  // CARGAR ESTADÍSTICAS
+  // ========================================
+
+  Future<void> loadStats() async {
+    try {
+      final stats = await userService.getMyStats();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        productsCreated = (stats['products_created'] as num?)?.toInt() ?? 0;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      final message = e.toString().replaceFirst('Exception: ', '');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudieron actualizar las estadísticas: $message'),
+        ),
+      );
+    }
+  }
+
+  // ========================================
+  // RECARGAR CATÁLOGO COMPLETO
+  // ========================================
+
+  Future<void> refreshData() async {
+    await Future.wait([loadProducts(), loadStats()]);
+  }
+
+  // ========================================
   // IR A CREAR PRODUCTO
   // ========================================
 
@@ -95,7 +178,40 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
 
     if (created == true) {
-      await loadProducts();
+      await refreshData();
+    }
+  }
+
+  // ========================================
+  // IR AL CHAT
+  // ========================================
+
+  Future<void> goToChat() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(currentUser: widget.currentUser),
+      ),
+    );
+  }
+
+  // ========================================
+  // IR AL DETALLE DEL PRODUCTO
+  // ========================================
+
+  Future<void> goToProductDetail(Product product) async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProductDetailScreen(
+          product: product,
+          currentUser: widget.currentUser,
+        ),
+      ),
+    );
+
+    if (changed == true) {
+      await refreshData();
     }
   }
 
@@ -112,7 +228,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
 
     if (updated == true) {
-      await loadProducts();
+      await refreshData();
     }
   }
 
@@ -123,20 +239,20 @@ class _ProductsScreenState extends State<ProductsScreen> {
   Future<void> deleteProduct(Product product) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Eliminar producto'),
           content: Text('¿Seguro que deseas eliminar "${product.name}"?'),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context, false);
+                Navigator.pop(dialogContext, false);
               },
               child: const Text('Cancelar'),
             ),
             FilledButton(
               onPressed: () {
-                Navigator.pop(context, true);
+                Navigator.pop(dialogContext, true);
               },
               child: const Text('Eliminar'),
             ),
@@ -160,7 +276,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
         SnackBar(content: Text('"${product.name}" eliminado correctamente')),
       );
 
-      await loadProducts();
+      await refreshData();
     } catch (e) {
       if (!mounted) {
         return;
@@ -202,9 +318,32 @@ class _ProductsScreenState extends State<ProductsScreen> {
         title: const Text('EcoHome Store'),
         actions: [
           // ========================================
-          // PERFIL
+          // USUARIO + CONTADOR
           // ========================================
 
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                '${widget.currentUser.username} '
+                '($productsCreated)',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+
+          // ========================================
+          // CHAT
+          // ========================================
+          IconButton(
+            onPressed: goToChat,
+            tooltip: 'Chat',
+            icon: const Icon(Icons.chat_bubble_outline),
+          ),
+
+          // ========================================
+          // PERFIL
+          // ========================================
           IconButton(
             onPressed: () {
               Navigator.push(
@@ -248,20 +387,45 @@ class _ProductsScreenState extends State<ProductsScreen> {
   // ========================================
 
   Widget buildBody() {
+    // ========================================
+    // CARGANDO
+    // ========================================
+
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
+
+    // ========================================
+    // ERROR
+    // ========================================
 
     if (error != null) {
       return Center(child: Text('Error: $error'));
     }
 
+    // ========================================
+    // SIN PRODUCTOS
+    // ========================================
+
     if (products.isEmpty) {
-      return const Center(child: Text('No hay productos disponibles'));
+      return RefreshIndicator(
+        onRefresh: refreshData,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 200),
+            Center(child: Text('No hay productos disponibles')),
+          ],
+        ),
+      );
     }
 
+    // ========================================
+    // LISTA DE PRODUCTOS
+    // ========================================
+
     return RefreshIndicator(
-      onRefresh: loadProducts,
+      onRefresh: refreshData,
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: products.length,
@@ -276,8 +440,21 @@ class _ProductsScreenState extends State<ProductsScreen> {
               widget.currentUser.role == 'admin' &&
               product.createdBy == widget.currentUser.id;
 
+          // ========================================
+          // PRODUCTO
+          // ========================================
+
           return ListTile(
+            // ========================================
+            // ABRIR DETALLE
+            // ========================================
+
+            onTap: () {
+              goToProductDetail(product);
+            },
+
             title: Text(product.name),
+
             subtitle: Text(
               'Creado por: '
               '${product.createdByUsername ?? 'Desconocido'}',
@@ -291,6 +468,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
               children: [
                 Text('\$${product.price.toStringAsFixed(2)}'),
 
+                // ========================================
+                // ACCIONES SOLO SI TIENE PERMISO
+                // ========================================
                 if (canManageProduct) ...[
                   const SizedBox(width: 8),
 
