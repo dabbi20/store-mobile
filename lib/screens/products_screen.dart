@@ -4,6 +4,7 @@ import '../core/network/api_client.dart';
 import '../models/product.dart';
 import '../services/auth_service.dart';
 import '../services/product_service.dart';
+import 'create_product_screen.dart';
 import 'login_screen.dart';
 import 'profile_screen.dart';
 
@@ -30,7 +31,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
   List<Product> products = [];
 
   bool isLoading = true;
-
   String? error;
 
   // ========================================
@@ -48,6 +48,13 @@ class _ProductsScreenState extends State<ProductsScreen> {
   // ========================================
 
   Future<void> loadProducts() async {
+    if (mounted) {
+      setState(() {
+        isLoading = true;
+        error = null;
+      });
+    }
+
     try {
       final result = await productService.getProducts();
 
@@ -68,6 +75,21 @@ class _ProductsScreenState extends State<ProductsScreen> {
         error = e.toString();
         isLoading = false;
       });
+    }
+  }
+
+  // ========================================
+  // IR A CREAR PRODUCTO
+  // ========================================
+
+  Future<void> goToCreateProduct() async {
+    final created = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => const CreateProductScreen()),
+    );
+
+    if (created == true) {
+      await loadProducts();
     }
   }
 
@@ -98,7 +120,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('EcoHome Store'),
-
         actions: [
           // ========================================
           // PERFIL
@@ -124,6 +145,15 @@ class _ProductsScreenState extends State<ProductsScreen> {
             icon: const Icon(Icons.logout),
           ),
         ],
+      ),
+
+      // ========================================
+      // CREAR PRODUCTO
+      // ========================================
+      floatingActionButton: FloatingActionButton(
+        onPressed: goToCreateProduct,
+        tooltip: 'Crear producto',
+        child: const Icon(Icons.add),
       ),
 
       body: buildBody(),

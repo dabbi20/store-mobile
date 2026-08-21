@@ -5,7 +5,7 @@ class Product {
   final DateTime createdAt;
   final DateTime updatedAt;
   final int createdBy;
-  final String createdByUsername;
+  final String? createdByUsername;
 
   Product({
     required this.id,
@@ -14,7 +14,7 @@ class Product {
     required this.createdAt,
     required this.updatedAt,
     required this.createdBy,
-    required this.createdByUsername,
+    this.createdByUsername,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
