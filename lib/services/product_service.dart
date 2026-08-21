@@ -34,27 +34,28 @@ class ProductService {
     return Product.fromJson(data['product']);
   }
 
-// ========================================
-// ACTUALIZAR PRODUCTO
-// ========================================
+  // ========================================
+  // ACTUALIZAR PRODUCTO
+  // ========================================
 
-Future<Product> updateProduct({
-  required int id,
-  required String name,
-  required double price,
-}) async {
-  final data = await apiClient.patch(
-    '/products/$id',
-    {
+  Future<Product> updateProduct({
+    required int id,
+    required String name,
+    required double price,
+  }) async {
+    final data = await apiClient.patch('/products/$id', {
       'name': name,
       'price': price,
-    },
-    authenticated: true,
-  );
+    }, authenticated: true);
 
-  return Product.fromJson(
-    data['product'],
-  );
-}
-}
+    return Product.fromJson(data['product']);
+  }
 
+  // ========================================
+  // ELIMINAR PRODUCTO
+  // ========================================
+
+  Future<void> deleteProduct({required int id}) async {
+    await apiClient.delete('/products/$id', authenticated: true);
+  }
+}

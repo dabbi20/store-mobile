@@ -41,6 +41,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
   @override
   void initState() {
     super.initState();
+
     loadProducts();
   }
 
@@ -108,6 +109,66 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
     if (updated == true) {
       await loadProducts();
+    }
+  }
+
+  // ========================================
+  // ELIMINAR PRODUCTO
+  // ========================================
+
+  Future<void> deleteProduct(Product product) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Eliminar producto'),
+          content: Text(
+            '¿Seguro que deseas eliminar '
+            '"${product.name}"?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    try {
+      await productService.deleteProduct(id: product.id);
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('"${product.name}" eliminado correctamente')),
+      );
+
+      await loadProducts();
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      final message = e.toString().replaceFirst('Exception: ', '');
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -202,13 +263,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
         return ListTile(
           title: Text(product.name),
+
           subtitle: Text(
             'Creado por: '
             '${product.createdByUsername ?? 'Desconocido'}',
           ),
 
           // ========================================
-          // PRECIO + EDITAR
+          // PRECIO + EDITAR + ELIMINAR
           // ========================================
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -217,12 +279,26 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
               const SizedBox(width: 8),
 
+              // ========================================
+              // EDITAR
+              // ========================================
               IconButton(
                 onPressed: () {
                   goToEditProduct(product);
                 },
                 tooltip: 'Editar producto',
                 icon: const Icon(Icons.edit_outlined),
+              ),
+
+              // ========================================
+              // ELIMINAR
+              // ========================================
+              IconButton(
+                onPressed: () {
+                  deleteProduct(product);
+                },
+                tooltip: 'Eliminar producto',
+                icon: const Icon(Icons.delete_outline),
               ),
             ],
           ),
