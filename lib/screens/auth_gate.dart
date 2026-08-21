@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/storage/session_service.dart';
+import '../models/user.dart';
 import '../services/user_service.dart';
 import 'login_screen.dart';
 import 'products_screen.dart';
@@ -18,7 +19,6 @@ class _AuthGateState extends State<AuthGate> {
   // ========================================
 
   final SessionService sessionService = SessionService();
-
   final UserService userService = UserService();
 
   // ========================================
@@ -28,8 +28,10 @@ class _AuthGateState extends State<AuthGate> {
   bool isLoading = true;
   bool isAuthenticated = false;
 
+  User? currentUser;
+
   // ========================================
-  // INICIALIZAR
+  // INICIALIZACIÓN
   // ========================================
 
   @override
@@ -46,7 +48,7 @@ class _AuthGateState extends State<AuthGate> {
   Future<void> checkSession() async {
     try {
       // ========================================
-      // COMPROBAR SI EXISTE TOKEN
+      // COMPROBAR TOKEN
       // ========================================
 
       final hasToken = await sessionService.hasToken();
@@ -54,7 +56,7 @@ class _AuthGateState extends State<AuthGate> {
       debugPrint('¿EXISTE TOKEN?: $hasToken');
 
       // ========================================
-      // NO EXISTE TOKEN
+      // NO HAY TOKEN
       // ========================================
 
       if (!hasToken) {
@@ -63,6 +65,7 @@ class _AuthGateState extends State<AuthGate> {
         }
 
         setState(() {
+          currentUser = null;
           isAuthenticated = false;
           isLoading = false;
         });
@@ -71,16 +74,7 @@ class _AuthGateState extends State<AuthGate> {
       }
 
       // ========================================
-      // OBTENER TOKEN GUARDADO
-      // SOLO PARA DEPURACIÓN
-      // ========================================
-
-      final token = await sessionService.getToken();
-
-      debugPrint('TOKEN GUARDADO: $token');
-
-      // ========================================
-      // VALIDAR TOKEN CONTRA EL BACKEND
+      // VALIDAR TOKEN CON BACKEND
       // GET /users/me
       // ========================================
 
@@ -97,35 +91,25 @@ class _AuthGateState extends State<AuthGate> {
       }
 
       setState(() {
+        currentUser = user;
         isAuthenticated = true;
         isLoading = false;
       });
     } catch (error) {
-      // ========================================
-      // ERROR VALIDANDO SESIÓN
-      // ========================================
-
       debugPrint('ERROR VALIDANDO SESIÓN: $error');
 
       // ========================================
-      // COMPROBAR SI EL TOKEN SIGUE GUARDADO
+      // TOKEN INVÁLIDO
       // ========================================
 
-      final token = await sessionService.getToken();
-
-      debugPrint('TOKEN DESPUÉS DEL ERROR: $token');
-
-      // ========================================
-      // IMPORTANTE
-      // NO BORRAMOS EL TOKEN TODAVÍA
-      // ESTAMOS DEPURANDO
-      // ========================================
+      await sessionService.removeToken();
 
       if (!mounted) {
         return;
       }
 
       setState(() {
+        currentUser = null;
         isAuthenticated = false;
         isLoading = false;
       });
@@ -139,7 +123,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     // ========================================
-    // CARGANDO SESIÓN
+    // CARGANDO
     // ========================================
 
     if (isLoading) {
@@ -147,15 +131,15 @@ class _AuthGateState extends State<AuthGate> {
     }
 
     // ========================================
-    // USUARIO AUTENTICADO
+    // AUTENTICADO
     // ========================================
 
-    if (isAuthenticated) {
-      return const ProductsScreen();
+    if (isAuthenticated && currentUser != null) {
+      return ProductsScreen(currentUser: currentUser!);
     }
 
     // ========================================
-    // USUARIO NO AUTENTICADO
+    // NO AUTENTICADO
     // ========================================
 
     return const LoginScreen();

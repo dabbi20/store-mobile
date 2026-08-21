@@ -22,7 +22,6 @@ class _LoginScreenState extends State<LoginScreen> {
   // ========================================
 
   final TextEditingController emailController = TextEditingController();
-
   final TextEditingController passwordController = TextEditingController();
 
   // ========================================
@@ -68,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
       debugPrint('Sesión iniciada: ${user.username}');
 
       // ========================================
-      // VERIFICAR QUE EL WIDGET SIGA MONTADO
+      // VERIFICAR WIDGET
       // ========================================
 
       if (!mounted) {
@@ -81,7 +80,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const ProductsScreen()),
+        MaterialPageRoute(
+          builder: (context) => ProductsScreen(currentUser: user),
+        ),
       );
     } catch (e) {
       if (!mounted) {

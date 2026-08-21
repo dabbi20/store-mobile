@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/network/api_client.dart';
 import '../models/product.dart';
+import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/product_service.dart';
 import 'create_product_screen.dart';
@@ -10,7 +11,9 @@ import 'login_screen.dart';
 import 'profile_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
-  const ProductsScreen({super.key});
+  final User currentUser;
+
+  const ProductsScreen({super.key, required this.currentUser});
 
   @override
   State<ProductsScreen> createState() => _ProductsScreenState();
@@ -74,7 +77,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
       }
 
       setState(() {
-        error = e.toString();
+        error = e.toString().replaceFirst('Exception: ', '');
+
         isLoading = false;
       });
     }
@@ -122,10 +126,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Eliminar producto'),
-          content: Text(
-            '¿Seguro que deseas eliminar '
-            '"${product.name}"?',
-          ),
+          content: Text('¿Seguro que deseas eliminar "${product.name}"?'),
           actions: [
             TextButton(
               onPressed: () {
@@ -228,12 +229,15 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
       // ========================================
       // CREAR PRODUCTO
+      // SOLO ADMIN
       // ========================================
-      floatingActionButton: FloatingActionButton(
-        onPressed: goToCreateProduct,
-        tooltip: 'Crear producto',
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: widget.currentUser.role == 'admin'
+          ? FloatingActionButton(
+              onPressed: goToCreateProduct,
+              tooltip: 'Crear producto',
+              child: const Icon(Icons.add),
+            )
+          : null,
 
       body: buildBody(),
     );
@@ -256,54 +260,67 @@ class _ProductsScreenState extends State<ProductsScreen> {
       return const Center(child: Text('No hay productos disponibles'));
     }
 
-    return ListView.builder(
-      itemCount: products.length,
-      itemBuilder: (context, index) {
-        final product = products[index];
-
-        return ListTile(
-          title: Text(product.name),
-
-          subtitle: Text(
-            'Creado por: '
-            '${product.createdByUsername ?? 'Desconocido'}',
-          ),
+    return RefreshIndicator(
+      onRefresh: loadProducts,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: products.length,
+        itemBuilder: (context, index) {
+          final product = products[index];
 
           // ========================================
-          // PRECIO + EDITAR + ELIMINAR
+          // PERMISOS DEL PRODUCTO
           // ========================================
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('\$${product.price.toStringAsFixed(2)}'),
 
-              const SizedBox(width: 8),
+          final canManageProduct =
+              widget.currentUser.role == 'admin' &&
+              product.createdBy == widget.currentUser.id;
 
-              // ========================================
-              // EDITAR
-              // ========================================
-              IconButton(
-                onPressed: () {
-                  goToEditProduct(product);
-                },
-                tooltip: 'Editar producto',
-                icon: const Icon(Icons.edit_outlined),
-              ),
+          return ListTile(
+            title: Text(product.name),
+            subtitle: Text(
+              'Creado por: '
+              '${product.createdByUsername ?? 'Desconocido'}',
+            ),
 
-              // ========================================
-              // ELIMINAR
-              // ========================================
-              IconButton(
-                onPressed: () {
-                  deleteProduct(product);
-                },
-                tooltip: 'Eliminar producto',
-                icon: const Icon(Icons.delete_outline),
-              ),
-            ],
-          ),
-        );
-      },
+            // ========================================
+            // PRECIO + ACCIONES
+            // ========================================
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('\$${product.price.toStringAsFixed(2)}'),
+
+                if (canManageProduct) ...[
+                  const SizedBox(width: 8),
+
+                  // ========================================
+                  // EDITAR
+                  // ========================================
+                  IconButton(
+                    onPressed: () {
+                      goToEditProduct(product);
+                    },
+                    tooltip: 'Editar producto',
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
+
+                  // ========================================
+                  // ELIMINAR
+                  // ========================================
+                  IconButton(
+                    onPressed: () {
+                      deleteProduct(product);
+                    },
+                    tooltip: 'Eliminar producto',
+                    icon: const Icon(Icons.delete_outline),
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
