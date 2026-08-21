@@ -58,6 +58,23 @@ class ApiClient {
   }
 
   // ========================================
+  // PATCH
+  // ========================================
+
+  Future<dynamic> patch(String endpoint, Map<String, dynamic> body) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+
+    final headers = await _getHeaders();
+
+    final response = await http.patch(
+      url,
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
+    return _handleResponse(response);
+  }
+  // ========================================
   // MANEJAR RESPUESTA
   // ========================================
 

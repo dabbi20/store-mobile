@@ -5,6 +5,7 @@ import '../models/product.dart';
 import '../services/auth_service.dart';
 import '../services/product_service.dart';
 import 'login_screen.dart';
+import 'profile_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -39,7 +40,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
   @override
   void initState() {
     super.initState();
-
     loadProducts();
   }
 
@@ -98,7 +98,26 @@ class _ProductsScreenState extends State<ProductsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('EcoHome Store'),
+
         actions: [
+          // ========================================
+          // PERFIL
+          // ========================================
+
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+            tooltip: 'Mi perfil',
+            icon: const Icon(Icons.account_circle_outlined),
+          ),
+
+          // ========================================
+          // CERRAR SESIÓN
+          // ========================================
           IconButton(
             onPressed: logout,
             tooltip: 'Cerrar sesión',
@@ -106,6 +125,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
           ),
         ],
       ),
+
       body: buildBody(),
     );
   }
