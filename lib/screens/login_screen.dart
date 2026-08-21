@@ -7,8 +7,7 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() =>
-      _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -22,11 +21,9 @@ class _LoginScreenState extends State<LoginScreen> {
   // CONTROLADORES
   // ========================================
 
-  final TextEditingController emailController =
-      TextEditingController();
+  final TextEditingController emailController = TextEditingController();
 
-  final TextEditingController passwordController =
-      TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   // ========================================
   // ESTADOS
@@ -34,7 +31,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool isLoading = false;
   bool obscurePassword = true;
-
   String? error;
 
   // ========================================
@@ -51,8 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (email.isEmpty || password.isEmpty) {
       setState(() {
-        error =
-            'El correo y la contraseña son obligatorios';
+        error = 'El correo y la contraseña son obligatorios';
       });
 
       return;
@@ -64,32 +59,29 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final result = await authService.login(
-        email,
-        password,
-      );
+      // ========================================
+      // AUTENTICAR USUARIO
+      // ========================================
 
-      final user = result['user'];
-      final token = result['token'];
+      final user = await authService.login(email, password);
 
-      debugPrint(
-        'Usuario: ${user.username}',
-      );
+      debugPrint('Sesión iniciada: ${user.username}');
 
-      debugPrint(
-        'Token: $token',
-      );
+      // ========================================
+      // VERIFICAR QUE EL WIDGET SIGA MONTADO
+      // ========================================
 
       if (!mounted) {
         return;
       }
 
+      // ========================================
+      // IR A PRODUCTOS
+      // ========================================
+
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) =>
-              const ProductsScreen(),
-        ),
+        MaterialPageRoute(builder: (context) => const ProductsScreen()),
       );
     } catch (e) {
       if (!mounted) {
@@ -97,12 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       setState(() {
-        error = e
-            .toString()
-            .replaceFirst(
-              'Exception: ',
-              '',
-            );
+        error = e.toString().replaceFirst('Exception: ', '');
       });
     } finally {
       if (mounted) {
@@ -136,74 +123,51 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 400,
-            ),
+            constraints: const BoxConstraints(maxWidth: 400),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // ========================================
                 // TÍTULO
                 // ========================================
 
-                const Icon(
-                  Icons.eco,
-                  size: 72,
-                ),
+                const Icon(Icons.eco, size: 72),
 
-                const SizedBox(
-                  height: 16,
-                ),
+                const SizedBox(height: 16),
 
                 const Text(
                   'EcoHome Store',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                 ),
 
-                const SizedBox(
-                  height: 8,
-                ),
+                const SizedBox(height: 8),
 
                 const Text(
                   'Inicia sesión en tu cuenta',
                   textAlign: TextAlign.center,
                 ),
 
-                const SizedBox(
-                  height: 32,
-                ),
+                const SizedBox(height: 32),
 
                 // ========================================
                 // EMAIL
                 // ========================================
-
                 TextField(
                   controller: emailController,
-                  keyboardType:
-                      TextInputType.emailAddress,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText:
-                        'Correo electrónico',
-                    border:
-                        OutlineInputBorder(),
-                    prefixIcon:
-                        Icon(Icons.email_outlined),
+                    labelText: 'Correo electrónico',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email_outlined),
                   ),
                 ),
 
-                const SizedBox(
-                  height: 16,
-                ),
+                const SizedBox(height: 16),
 
                 // ========================================
                 // CONTRASEÑA
                 // ========================================
-
                 TextField(
                   controller: passwordController,
                   obscureText: obscurePassword,
@@ -214,15 +178,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                   decoration: InputDecoration(
                     labelText: 'Contraseña',
-                    border:
-                        const OutlineInputBorder(),
-                    prefixIcon:
-                        const Icon(Icons.lock_outline),
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       onPressed: () {
                         setState(() {
-                          obscurePassword =
-                              !obscurePassword;
+                          obscurePassword = !obscurePassword;
                         });
                       },
                       icon: Icon(
@@ -234,51 +195,36 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(
-                  height: 16,
-                ),
+                const SizedBox(height: 16),
 
                 // ========================================
                 // ERROR
                 // ========================================
-
                 if (error != null) ...[
                   Text(
                     error!,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .error,
+                      color: Theme.of(context).colorScheme.error,
                     ),
                   ),
-                  const SizedBox(
-                    height: 16,
-                  ),
+                  const SizedBox(height: 16),
                 ],
 
                 // ========================================
                 // BOTÓN
                 // ========================================
-
                 FilledButton(
-                  onPressed:
-                      isLoading ? null : login,
+                  onPressed: isLoading ? null : login,
                   child: Padding(
-                    padding:
-                        const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(14),
                     child: isLoading
                         ? const SizedBox(
                             width: 22,
                             height: 22,
-                            child:
-                                CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text(
-                            'Iniciar sesión',
-                          ),
+                        : const Text('Iniciar sesión'),
                   ),
                 ),
               ],

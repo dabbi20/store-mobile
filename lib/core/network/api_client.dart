@@ -2,8 +2,28 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../storage/session_service.dart';
+
 class ApiClient {
   static const String baseUrl = 'http://localhost:3000';
+
+  final SessionService sessionService = SessionService();
+
+  // ========================================
+  // CREAR HEADERS
+  // ========================================
+
+  Future<Map<String, String>> _getHeaders() async {
+    final token = await sessionService.getToken();
+
+    final headers = <String, String>{'Content-Type': 'application/json'};
+
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    return headers;
+  }
 
   // ========================================
   // GET
@@ -12,7 +32,9 @@ class ApiClient {
   Future<dynamic> get(String endpoint) async {
     final url = Uri.parse('$baseUrl$endpoint');
 
-    final response = await http.get(url);
+    final headers = await _getHeaders();
+
+    final response = await http.get(url, headers: headers);
 
     return _handleResponse(response);
   }
@@ -24,9 +46,11 @@ class ApiClient {
   Future<dynamic> post(String endpoint, Map<String, dynamic> body) async {
     final url = Uri.parse('$baseUrl$endpoint');
 
+    final headers = await _getHeaders();
+
     final response = await http.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode(body),
     );
 
