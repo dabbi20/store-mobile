@@ -5,6 +5,7 @@ import '../models/product.dart';
 import '../services/auth_service.dart';
 import '../services/product_service.dart';
 import 'create_product_screen.dart';
+import 'edit_product_screen.dart';
 import 'login_screen.dart';
 import 'profile_screen.dart';
 
@@ -89,6 +90,23 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
 
     if (created == true) {
+      await loadProducts();
+    }
+  }
+
+  // ========================================
+  // IR A EDITAR PRODUCTO
+  // ========================================
+
+  Future<void> goToEditProduct(Product product) async {
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProductScreen(product: product),
+      ),
+    );
+
+    if (updated == true) {
       await loadProducts();
     }
   }
@@ -186,9 +204,28 @@ class _ProductsScreenState extends State<ProductsScreen> {
           title: Text(product.name),
           subtitle: Text(
             'Creado por: '
-            '${product.createdByUsername}',
+            '${product.createdByUsername ?? 'Desconocido'}',
           ),
-          trailing: Text('\$${product.price.toStringAsFixed(2)}'),
+
+          // ========================================
+          // PRECIO + EDITAR
+          // ========================================
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('\$${product.price.toStringAsFixed(2)}'),
+
+              const SizedBox(width: 8),
+
+              IconButton(
+                onPressed: () {
+                  goToEditProduct(product);
+                },
+                tooltip: 'Editar producto',
+                icon: const Icon(Icons.edit_outlined),
+              ),
+            ],
+          ),
         );
       },
     );
